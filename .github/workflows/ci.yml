@@ -1,0 +1,47 @@
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        settings:
+          - host: macos-26-intel
+            artifact: darwin-x64
+          - host: macos-latest
+            artifact: darwin-arm64
+          - host: ubuntu-24.04-arm
+            artifact: linux-arm64
+          - host: ubuntu-latest
+            artifact: linux-x64
+          - host: windows-11-arm
+            artifact: win-arm64
+          - host: windows-latest
+            artifact: win-x64
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          run_install: true
+
+      - name: Build
+        run: pnpm build --build-exe
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.settings.artifact }}
+          path: target

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "arkts": {
+      "command": "node",
+      "args": ["dist/bin.cjs"]
+    }
+  }
+}

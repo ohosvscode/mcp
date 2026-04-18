@@ -1,0 +1,61 @@
+{
+  "name": "@arkts/mcp",
+  "type": "module",
+  "version": "1.1.7",
+  "description": "MCP Server for ArkTS.",
+  "author": "Naily Zero <zero@naily.cc> (https://naily.cc)",
+  "license": "MIT",
+  "homepage": "https://github.com/ohosvscode/mcp",
+  "repository": {
+    "url": "https://github.com/ohosvscode/mcp.git",
+    "type": "git"
+  },
+  "bugs": {
+    "url": "https://github.com/ohosvscode/mcp/issues",
+    "email": "zero@naily.cc"
+  },
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/index.d.mts",
+        "require": "./dist/index.d.cts"
+      },
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "bin": "./dist/bin.cjs",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vp pack",
+    "test": "vp test watch --globals --coverage --ui",
+    "prepublishOnly": "vp pack"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
+    "@vstils/core": "^0.0.8",
+    "axios": "^1.15.0",
+    "minisearch": "^7.2.0",
+    "nodejieba": "^3.5.8",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^8.2.0",
+    "@tsdown/exe": "^0.21.9",
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "@vitest/ui": "^4.1.4",
+    "eslint": "^10.2.1",
+    "typescript": "^6.0.3",
+    "vite-plus": "^0.1.18"
+  }
+}
