@@ -11,10 +11,7 @@ const baseCopyDir = ['.cache', 'target']
 
 export default defineConfig({
   staged: {
-    '*': [
-      'eslint --fix',
-      'vp lint --fix',
-    ],
+    '*': 'eslint --fix',
   },
 
   pack: [
