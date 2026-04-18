@@ -5,6 +5,8 @@ import process from 'node:process'
 import { defineConfig } from 'vite-plus'
 import packageJson from './package.json'
 
+const require = createRequire(import.meta.url)
+
 export default defineConfig({
   pack: [
     {
@@ -43,7 +45,7 @@ export default defineConfig({
         },
         copy: [
           {
-            from: path.resolve(path.dirname(createRequire(import.meta.url).resolve('nodejieba')), 'build', 'Release', '**', '*'),
+            from: path.resolve(path.dirname(require.resolve('nodejieba')), 'build', 'Release', '**', '*'),
             to: 'target/build/Release',
           },
         ],
