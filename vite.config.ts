@@ -1,4 +1,6 @@
 import type { PackUserConfig } from 'vite-plus/pack'
+import { createRequire } from 'node:module'
+import path from 'node:path'
 import process from 'node:process'
 import { defineConfig } from 'vite-plus'
 import packageJson from './package.json'
@@ -39,6 +41,12 @@ export default defineConfig({
           outDir: 'target',
           fileName: 'arkts-mcp',
         },
+        copy: [
+          {
+            from: path.resolve(path.dirname(createRequire(import.meta.url).resolve('nodejieba')), 'build', 'Release', '**', '*'),
+            to: 'target/build/Release',
+          },
+        ],
       } satisfies PackUserConfig
       : undefined,
   ].filter(Boolean) as PackUserConfig[],
