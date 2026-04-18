@@ -27,8 +27,13 @@ export default defineConfig({
         entry: 'src/bin.ts',
         format: 'cjs',
         outDir: '.cache',
-        minify: true,
-        env: { BUILD_TYPE: 'EXE' },
+        // Use BIN here so the Rolldown graph matches dist/bin.cjs. EXE previously produced a
+        // lazy-init Zod layout that broke @modelcontextprotocol/server's module-scope z.url().
+        env: { BUILD_TYPE: 'BIN' },
+        deps: {
+          alwaysBundle: Object.keys(packageJson.dependencies).map(dep => new RegExp(`^${dep}`)),
+          onlyBundle: false,
+        },
         exe: {
           enabled: true,
           outDir: 'target',
