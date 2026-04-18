@@ -16,7 +16,7 @@ export const install: InstallTool = (server) => {
     const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree)
     const results = await searchCatalogTree(ctx.text, flattenTree.flat())
     console.error(results)
-    return { content: [] }
+    return { content: [{ type: 'text', text: JSON.stringify(results) }] }
   })
 }
 
