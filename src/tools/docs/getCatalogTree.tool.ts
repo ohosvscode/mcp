@@ -6,32 +6,42 @@ import nodeJieba from 'nodejieba'
 import z from 'zod'
 
 export const install: InstallTool = (server) => {
-  server.registerTool('searchHarmonyosGuidesCatalogs', {
-    inputSchema: z.object({
-      language: z.enum(['cn', 'en']),
-      text: z.string(),
-    }),
-  }, async (ctx) => {
-    const response = await requestCatalogTree(ctx.language)
-    const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree)
-    const results = await searchCatalogTree(ctx.text, flattenTree.flat())
-    console.error(results)
-    return { content: [{ type: 'text', text: JSON.stringify(results) }] }
-  })
+  server.registerTool(
+    'searchHarmonyosGuidesCatalogs',
+    {
+      inputSchema: z.object({
+        language: z.enum(['cn', 'en']),
+        text: z.string(),
+      }),
+    },
+    async (ctx) => {
+      const response = await requestCatalogTree(ctx.language)
+      const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree)
+      const results = await searchCatalogTree(ctx.text, flattenTree.flat())
+      console.error(results)
+      return { content: [{ type: 'text', text: JSON.stringify(results) }] }
+    },
+  )
 }
 
 export async function requestCatalogTree(language: 'cn' | 'en'): Promise<CatalogTreeResponse> {
-  const response = await axios.post<unknown>('https://svc-drcn.developer.huawei.com/community/servlet/consumer/cn/documentPortal/getCatalogTree', {
-    language,
-    catalogName: 'harmonyos-guides',
-    objectId: 'arkts-overview',
-  })
+  const response = await axios.post<unknown>(
+    'https://svc-drcn.developer.huawei.com/community/servlet/consumer/cn/documentPortal/getCatalogTree',
+    {
+      language,
+      catalogName: 'harmonyos-guides',
+      objectId: 'arkts-overview',
+    },
+  )
   if (!isValidCatalogTreeResponse(response.data))
     throw new Error('Invalid catalog tree response')
   return response.data
 }
 
-export async function searchCatalogTree(text: string, flattenTree: FlattenCatalogTreeItem[]): Promise<SearchResult[]> {
+export async function searchCatalogTree(
+  text: string,
+  flattenTree: FlattenCatalogTreeItem[],
+): Promise<SearchResult[]> {
   const miniSearch = new MiniSearch({
     fields: ['nodeName'],
     idField: 'nodeId',
@@ -59,13 +69,8 @@ export function toFlattenCatalogTree(tree: CatalogTreeItem): FlattenCatalogTreeI
   const out: FlattenCatalogTreeItem[] = []
   function walk(node: CatalogTreeItem, parentNodeId?: string): void {
     const { children, ...rest } = node
-    out.push(
-      parentNodeId === undefined
-        ? { ...rest }
-        : { ...rest, parentNodeId },
-    )
-    for (const child of children ?? [])
-      walk(child, rest.nodeId)
+    out.push(parentNodeId === undefined ? { ...rest } : { ...rest, parentNodeId })
+    for (const child of children ?? []) walk(child, rest.nodeId)
   }
   walk(tree)
   return out
@@ -78,11 +83,13 @@ interface CatalogTreeResponse {
 }
 
 function isValidCatalogTreeResponse(tree: unknown): tree is CatalogTreeResponse {
-  return typeof tree === 'object'
+  return (
+    typeof tree === 'object'
     && tree !== null
     && 'value' in tree
     && typeof tree.value === 'object'
     && tree.value !== null
     && 'catalogTreeList' in tree.value
     && Array.isArray(tree.value.catalogTreeList)
+  )
 }

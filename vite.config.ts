@@ -3,13 +3,17 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import process from 'node:process'
 import { defineConfig } from 'vite-plus'
-import packageJson from './package.json'
+import packageJson from './package.json' with { type: 'json' }
 
 const require = createRequire(import.meta.url)
 const nodejieba = path.dirname(require.resolve('nodejieba'))
 const baseCopyDir = ['.cache', 'target']
 
 export default defineConfig({
+  staged: {
+    '*': 'eslint --fix',
+  },
+
   pack: [
     {
       entry: 'src/bin.ts',
@@ -29,27 +33,33 @@ export default defineConfig({
       env: { BUILD_TYPE: 'LIB' },
     } satisfies PackUserConfig,
     process.argv.includes('--build-exe')
-      ? {
-        entry: 'src/bin.ts',
-        format: 'cjs',
-        outDir: '.cache',
-        // Use BIN here so the Rolldown graph matches dist/bin.cjs. EXE previously produced a
-        // lazy-init Zod layout that broke @modelcontextprotocol/server's module-scope z.url().
-        env: { BUILD_TYPE: 'BIN' },
-        deps: {
-          alwaysBundle: Object.keys(packageJson.dependencies).map(dep => new RegExp(`^${dep}`)),
-          onlyBundle: false,
-        },
-        exe: {
-          enabled: true,
-          outDir: 'target',
-          fileName: 'arkts-mcp',
-        },
-        copy: buildCopyConfig([
-          { from: path.resolve(nodejieba, 'build', 'Release', '**', '*.node'), to: 'build/Release' },
-          { from: path.resolve(nodejieba, 'submodules', 'cppjieba', 'dict'), to: 'submodules/cppjieba' },
-        ]),
-      } satisfies PackUserConfig
+      ? ({
+          entry: 'src/bin.ts',
+          format: 'cjs',
+          outDir: '.cache',
+          // Use BIN here so the Rolldown graph matches dist/bin.cjs. EXE previously produced a
+          // lazy-init Zod layout that broke @modelcontextprotocol/server's module-scope z.url().
+          env: { BUILD_TYPE: 'BIN' },
+          deps: {
+            alwaysBundle: Object.keys(packageJson.dependencies).map(dep => new RegExp(`^${dep}`)),
+            onlyBundle: false,
+          },
+          exe: {
+            enabled: true,
+            outDir: 'target',
+            fileName: 'arkts-mcp',
+          },
+          copy: buildCopyConfig([
+            {
+              from: path.resolve(nodejieba, 'build', 'Release', '**', '*.node'),
+              to: 'build/Release',
+            },
+            {
+              from: path.resolve(nodejieba, 'submodules', 'cppjieba', 'dict'),
+              to: 'submodules/cppjieba',
+            },
+          ]),
+        } satisfies PackUserConfig)
       : undefined,
   ].filter(Boolean) as PackUserConfig[],
 })

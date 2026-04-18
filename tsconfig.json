@@ -9,7 +9,5 @@
     "isolatedDeclarations": true,
     "skipLibCheck": true
   },
-  "exclude": [
-    "**/*.config.ts"
-  ]
+  "exclude": ["**/*.config.ts"]
 }

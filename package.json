@@ -8,8 +8,8 @@
   "license": "MIT",
   "homepage": "https://github.com/ohosvscode/mcp",
   "repository": {
-    "url": "https://github.com/ohosvscode/mcp.git",
-    "type": "git"
+    "type": "git",
+    "url": "https://github.com/ohosvscode/mcp.git"
   },
   "bugs": {
     "url": "https://github.com/ohosvscode/mcp/issues",
@@ -25,9 +25,6 @@
       "require": "./dist/index.cjs"
     }
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
@@ -35,6 +32,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "vp pack",
     "test": "vp test watch --globals --coverage --ui",
