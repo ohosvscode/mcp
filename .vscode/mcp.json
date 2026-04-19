@@ -1,6 +1,6 @@
 {
   "servers": {
-    "arkts-mcp-server-a087b672": {
+    "arkts-mcp-server": {
       "type": "stdio",
       "command": "node",
       "args": [

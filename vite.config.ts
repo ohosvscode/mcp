@@ -57,7 +57,7 @@ export default defineConfig({
           plugins: [markdownPlugin, nodejiebaPlugin],
           copy: [
             ...nodejiebaPlugin.api?.buildCopyConfig(baseCopyDir) ?? [],
-            './src/assets',
+            { from: 'src/assets', to: 'target' },
           ],
         } satisfies PackUserConfig)
       : undefined,

@@ -5,6 +5,9 @@ import { version } from '../package.json'
 import description from './description.md'
 
 export interface ArktsMcpServerOptions {
+  /**
+   * Path to a custom icon for the MCP server. Should be a PNG file. If not provided, the default logo will be used.
+   */
   iconPath?: string
 }
 
@@ -13,7 +16,7 @@ export async function createArktsMcpServer(options: ArktsMcpServerOptions = {}):
     name: '@arkts/mcp',
     version,
     description,
-    icons: [{ src: options.iconPath || path.resolve(import.meta.dirname, 'assets/image.png'), mimeType: 'image/png' }],
+    icons: [{ src: options.iconPath || path.resolve(import.meta.dirname, 'assets/logo.png'), mimeType: 'image/png' }],
   })
 
   // Lazy or eager load the tools
