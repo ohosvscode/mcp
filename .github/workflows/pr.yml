@@ -1,0 +1,75 @@
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '!README.md'
+      - '!LICENSE'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        settings:
+          - host: macos-26-intel
+            artifact: darwin-x64
+          - host: macos-latest
+            artifact: darwin-arm64
+          - host: ubuntu-24.04-arm
+            artifact: linux-arm64
+          - host: ubuntu-latest
+            artifact: linux-x64
+          - host: windows-11-arm
+            artifact: win-arm64
+          - host: windows-latest
+            artifact: win-x64
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 25.9.0
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.33.0
+          run_install: true
+
+      - name: Build
+        run: pnpm build --build-exe
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.settings.artifact }}
+          path: target
+
+  publish:
+    name: Publish packages to pkg.pr.new
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.33.0
+          run_install: true
+
+      - name: Publish packages
+        run: pnpm dlx pkg-pr-new publish --compact --pnpm .
