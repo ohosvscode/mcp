@@ -22,10 +22,6 @@ export default defineConfig({
       dts: false,
       env: { BUILD_TYPE: 'BIN' },
       plugins: [markdownPlugin],
-      deps: {
-        alwaysBundle: Object.keys(packageJson.dependencies).map(dep => new RegExp(`^${dep}`)),
-        onlyBundle: false,
-      },
     } satisfies PackUserConfig,
     {
       entry: 'src/index.ts',

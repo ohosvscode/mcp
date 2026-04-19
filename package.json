@@ -28,7 +28,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
-  "bin": "./dist/bin.cjs",
+  "bin": {
+    "arkts-mcp": "./dist/bin.cjs"
+  },
   "files": [
     "dist"
   ],
