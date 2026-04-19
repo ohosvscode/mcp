@@ -22,6 +22,9 @@ export default defineConfig({
       dts: false,
       env: { BUILD_TYPE: 'BIN' },
       plugins: [markdownPlugin],
+      deps: {
+        onlyBundle: false,
+      },
     } satisfies PackUserConfig,
     {
       entry: 'src/index.ts',
@@ -29,6 +32,9 @@ export default defineConfig({
       dts: true,
       env: { BUILD_TYPE: 'LIB' },
       plugins: [markdownPlugin],
+      deps: {
+        onlyBundle: false,
+      },
     } satisfies PackUserConfig,
     process.argv.includes('--build-exe')
       ? ({
