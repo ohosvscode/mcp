@@ -60,6 +60,27 @@ jobs:
           name: ${{ matrix.settings.artifact }}
           path: target
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 25.9.0
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.33.0
+          run_install: true
+
+      - name: Test
+        run: pnpm test
+
   publish:
     name: Publish packages to pkg.pr.new
     runs-on: ubuntu-latest
