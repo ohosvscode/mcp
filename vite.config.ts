@@ -25,6 +25,7 @@ export default defineConfig({
       deps: {
         onlyBundle: false,
       },
+      copy: './src/assets',
     } satisfies PackUserConfig,
     {
       entry: 'src/index.ts',
@@ -54,7 +55,10 @@ export default defineConfig({
             fileName: 'arkts-mcp',
           },
           plugins: [markdownPlugin, nodejiebaPlugin],
-          copy: nodejiebaPlugin.api?.buildCopyConfig(baseCopyDir),
+          copy: [
+            ...nodejiebaPlugin.api?.buildCopyConfig(baseCopyDir) ?? [],
+            './src/assets',
+          ],
         } satisfies PackUserConfig)
       : undefined,
   ].filter(Boolean) as PackUserConfig[],

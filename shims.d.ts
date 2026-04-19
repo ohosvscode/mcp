@@ -3,3 +3,7 @@ declare module '*.md' {
   const content: MarkdownString
   export default content
 }
+
+declare interface MarkdownModule {
+  readonly default?: string
+}

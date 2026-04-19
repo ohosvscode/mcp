@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "arkts-mcp-server-a087b672": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "dist/bin.mjs"
+      ]
+    }
+  },
+  "inputs": []
+}
