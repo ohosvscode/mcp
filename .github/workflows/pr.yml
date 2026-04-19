@@ -52,13 +52,7 @@ jobs:
         run: pnpm build --build-exe
 
       - name: Show built files
-        shell: bash
-        run: |
-          if [[ ! -d target ]]; then
-            echo 'No target directory'
-            exit 0
-          fi
-          find target -maxdepth 3 -print | sort
+        run: node scripts/tree.ts
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
