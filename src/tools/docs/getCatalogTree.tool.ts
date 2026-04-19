@@ -9,6 +9,9 @@ export const install: McpTool = (server) => {
   server.registerTool(
     'searchHarmonyosGuidesCatalogs',
     {
+      annotations: {
+        readOnlyHint: true,
+      },
       inputSchema: z.object({
         language: z.enum(['cn', 'en']),
         text: z.string(),
@@ -33,8 +36,7 @@ export async function requestCatalogTree(language: 'cn' | 'en'): Promise<Catalog
       objectId: 'arkts-overview',
     },
   )
-  if (!isValidCatalogTreeResponse(response.data))
-    throw new Error('Invalid catalog tree response')
+  if (!isValidCatalogTreeResponse(response.data)) throw new Error('Invalid catalog tree response')
   return response.data
 }
 
@@ -48,9 +50,7 @@ export async function searchCatalogTree(
     tokenize: text => nodeJieba.cut(text),
   })
   miniSearch.addAll(flattenTree)
-  return miniSearch.search(text, {
-    tokenize: text => nodeJieba.cut(text),
-  })
+  return miniSearch.search(text)
 }
 
 interface CatalogTreeItem {
@@ -58,6 +58,8 @@ interface CatalogTreeItem {
   nodeId?: string
   labelNameCn?: string
   labelNameEn?: string
+  relateDocument?: string
+  isLeaf?: boolean
   children?: CatalogTreeItem[]
 }
 

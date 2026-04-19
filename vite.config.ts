@@ -4,6 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { defineConfig } from 'vite-plus'
 import packageJson from './package.json' with { type: 'json' }
+import { markdown } from './scripts/markdown'
 
 const require = createRequire(import.meta.url)
 const nodejieba = path.dirname(require.resolve('nodejieba'))
@@ -21,6 +22,7 @@ export default defineConfig({
       minify: true,
       dts: false,
       env: { BUILD_TYPE: 'BIN' },
+      plugins: [markdown()],
       deps: {
         alwaysBundle: Object.keys(packageJson.dependencies).map(dep => new RegExp(`^${dep}`)),
         onlyBundle: false,
@@ -31,6 +33,7 @@ export default defineConfig({
       format: ['esm', 'cjs'],
       dts: true,
       env: { BUILD_TYPE: 'LIB' },
+      plugins: [markdown()],
     } satisfies PackUserConfig,
     process.argv.includes('--build-exe')
       ? ({
@@ -49,6 +52,7 @@ export default defineConfig({
             outDir: 'target',
             fileName: 'arkts-mcp',
           },
+          plugins: [markdown()],
           copy: buildCopyConfig([
             {
               from: path.resolve(nodejieba, 'build', 'Release', '**', '*.node'),

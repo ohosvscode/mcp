@@ -50,12 +50,12 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^8.2.0",
     "@tsdown/exe": "^0.21.9",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",
     "@vitest/ui": "^4.1.4",
     "eslint": "^10.2.1",
+    "naily-eslint-config": "^0.0.3",
     "pnpm": "^10.33.0",
     "typescript": "^6.0.3",
     "vite-plus": "^0.1.18"

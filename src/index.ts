@@ -1,11 +1,13 @@
 import type { McpTool } from './tools/types'
 import { McpServer } from '@modelcontextprotocol/server'
 import { version } from '../package.json'
+import description from './description.md'
 
 export async function createArktsMcpServer(): Promise<McpServer> {
   const server = new McpServer({
     name: '@arkts/mcp',
     version,
+    description,
   })
 
   if (import.meta.env.BUILD_TYPE === 'BIN') {
