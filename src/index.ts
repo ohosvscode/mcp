@@ -22,28 +22,27 @@ export async function createArktsMcpServer(options: ArktsMcpServerOptions = {}):
   // Lazy or eager load the tools
   if (import.meta.env.BUILD_TYPE === 'BIN') {
     const mods = Object.entries(import.meta.glob<ToolModule>('./tools/**/*.tool.{ts,md}', { eager: true }))
-    for (const [path, mod] of mods) {
-      installTools(path, mod, mods)
-    }
+    await Promise.all(mods.map(async ([path, mod]) => /* @__PURE__ */ await installTools(path, mod, mods)))
   }
   else {
     const mods = Object.entries(import.meta.glob<ToolModule>('./tools/**/*.tool.{ts,md}'))
-    for (const [path, mod] of mods) {
-      if (path.endsWith('.md')) continue
-      installTools(path, await mod(), mods)
-    }
+    await Promise.all(mods.map(async ([path, mod]) => /* @__PURE__ */ await installTools(path, await mod(), mods)))
   }
 
   return server
 
   async function installTools(path: string, module: ToolModule, mods: [string, (() => Promise<ToolModule>) | ToolModule][]): Promise<void> {
     if (typeof module.default === 'object' && module.default !== null) {
+      const description = await findDescription(path, mods)
+      const title = await findTitle(description ?? '')
+
       server.registerTool(module.default.name, {
-        description: await findDescription(path, mods),
+        title,
+        description,
         ...module.default,
       }, module.default.execute)
     }
-    module.install?.(server)
+    await module.install?.(server)
   }
 
   async function findDescription(path: string, mods: [string, (() => Promise<ToolModule | MarkdownModule>) | ToolModule | MarkdownModule][]): Promise<string | undefined> {
@@ -53,5 +52,11 @@ export async function createArktsMcpServer(options: ArktsMcpServerOptions = {}):
       const loadedMod = typeof mod === 'function' ? await mod() : mod
       return loadedMod.default as string
     }
+  }
+
+  async function findTitle(description: string): Promise<string | undefined> {
+    const maybeTitle = description.trim().split('\n')?.[0]
+    if (maybeTitle?.startsWith('# ')) return maybeTitle.slice(2)
+    return undefined
   }
 }

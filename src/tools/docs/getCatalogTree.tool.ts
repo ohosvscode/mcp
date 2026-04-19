@@ -51,10 +51,7 @@ export async function requestCatalogTree(language: 'cn' | 'en'): Promise<Catalog
   return response.data
 }
 
-export async function searchCatalogTree(
-  text: string,
-  flattenTree: FlattenCatalogTreeItem[],
-): Promise<SearchResult[]> {
+export async function searchCatalogTree(text: string, flattenTree: FlattenCatalogTreeItem[]): Promise<SearchResult[]> {
   const miniSearch = new MiniSearch({
     fields: ['nodeName'],
     idField: 'nodeId',

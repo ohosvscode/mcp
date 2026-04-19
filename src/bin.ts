@@ -2,6 +2,7 @@
 import process from 'node:process'
 import { StdioServerTransport } from '@modelcontextprotocol/server'
 import { createArktsMcpServer } from './index'
+import 'source-map-support/register'
 
 async function main(): Promise<void> {
   const server = await createArktsMcpServer()
