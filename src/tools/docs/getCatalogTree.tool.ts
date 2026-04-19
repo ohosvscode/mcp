@@ -5,24 +5,48 @@ import MiniSearch from 'minisearch'
 import nodeJieba from 'nodejieba'
 import z from 'zod'
 
+const baseSchema = z.object({
+  language: z.enum(['cn', 'en']),
+})
+
 export const install: McpTool = (server) => {
   server.registerTool(
-    'searchHarmonyosGuidesCatalogs',
+    'getCatalogTree',
     {
       annotations: {
         readOnlyHint: true,
       },
-      inputSchema: z.object({
-        language: z.enum(['cn', 'en']),
-        text: z.string(),
+      inputSchema: z.union([
+        baseSchema.extend({
+          queryType: z.literal('search'),
+          language: z.enum(['cn', 'en']),
+          text: z.string(),
+        }),
+        baseSchema.extend({
+          queryType: z.literal('get'),
+          language: z.enum(['cn', 'en']),
+        }),
+      ]),
+      outputSchema: z.object({
+        catalogs: z.array(z.record(z.string(), z.unknown())),
       }),
     },
-    async (ctx) => {
-      const response = await requestCatalogTree(ctx.language)
-      const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree).flat()
-      const results = await searchCatalogTree(ctx.text, flattenTree)
-      const contents = results.map(result => flattenTree.find(item => item.nodeId === result.id))
-      return { content: [{ type: 'text', text: JSON.stringify(contents) }] }
+    async (input) => {
+      switch (input.queryType) {
+        case 'search': {
+          const response = await requestCatalogTree(input.language)
+          const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree).flat()
+          const results = await searchCatalogTree(input.text, flattenTree)
+          const contents = results.map(result => flattenTree.find(item => item.nodeId === result.id))
+          return { structuredContent: { catalogs: contents }, content: [] }
+        }
+        case 'get': {
+          const response = await requestCatalogTree(input.language)
+          const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree).flat()
+          return { structuredContent: { catalogs: flattenTree }, content: [] }
+        }
+        default: throw new Error('Invalid query type')
+      }
     },
   )
 }

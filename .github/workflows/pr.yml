@@ -49,7 +49,7 @@ jobs:
           run_install: true
 
       - name: Build
-        run: pnpm build --build-exe
+        run: pnpm build --build-exe && tree target -L 3
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6

@@ -1,14 +1,14 @@
-import type { CopyEntry, PackUserConfig } from 'vite-plus/pack'
-import { createRequire } from 'node:module'
-import path from 'node:path'
+import type { PackUserConfig } from 'vite-plus/pack'
 import process from 'node:process'
 import { defineConfig } from 'vite-plus'
 import packageJson from './package.json' with { type: 'json' }
 import { markdown } from './scripts/markdown'
+import { nodejieba } from './scripts/nodejieba'
 
-const require = createRequire(import.meta.url)
-const nodejieba = path.dirname(require.resolve('nodejieba'))
 const baseCopyDir = ['.cache', 'target']
+const markdownPlugin = markdown()
+const nodejiebaPlugin = nodejieba()
+const plugins = [markdownPlugin, nodejiebaPlugin]
 
 export default defineConfig({
   staged: {
@@ -22,7 +22,7 @@ export default defineConfig({
       minify: true,
       dts: false,
       env: { BUILD_TYPE: 'BIN' },
-      plugins: [markdown()],
+      plugins,
       deps: {
         alwaysBundle: Object.keys(packageJson.dependencies).map(dep => new RegExp(`^${dep}`)),
         onlyBundle: false,
@@ -33,7 +33,7 @@ export default defineConfig({
       format: ['esm', 'cjs'],
       dts: true,
       env: { BUILD_TYPE: 'LIB' },
-      plugins: [markdown()],
+      plugins,
     } satisfies PackUserConfig,
     process.argv.includes('--build-exe')
       ? ({
@@ -52,30 +52,9 @@ export default defineConfig({
             outDir: 'target',
             fileName: 'arkts-mcp',
           },
-          plugins: [markdown()],
-          copy: buildCopyConfig([
-            {
-              from: path.resolve(nodejieba, 'build', 'Release', '**', '*.node'),
-              to: 'build/Release',
-            },
-            {
-              from: path.resolve(nodejieba, 'submodules', 'cppjieba', 'dict'),
-              to: 'submodules/cppjieba',
-            },
-          ]),
+          plugins,
+          copy: nodejiebaPlugin.api?.buildCopyConfig(baseCopyDir),
         } satisfies PackUserConfig)
       : undefined,
   ].filter(Boolean) as PackUserConfig[],
 })
-
-function buildCopyConfig(options: CopyEntry[]): CopyEntry[] {
-  const copyConfig: CopyEntry[] = []
-
-  for (const option of options) {
-    for (const baseDir of baseCopyDir) {
-      copyConfig.push({ from: option.from, to: path.resolve(baseDir, option.to ?? 'dist') })
-    }
-  }
-
-  return copyConfig
-}
