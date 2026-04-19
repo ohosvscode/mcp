@@ -40,6 +40,7 @@
   "scripts": {
     "build": "vp pack",
     "test": "vp test watch --globals --coverage --ui",
+    "test:ci": "vp test --globals --coverage",
     "prepublishOnly": "vp pack"
   },
   "dependencies": {

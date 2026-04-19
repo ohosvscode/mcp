@@ -83,7 +83,7 @@ jobs:
           run_install: true
 
       - name: Test
-        run: pnpm test
+        run: pnpm test:ci
 
   publish:
     name: Continuous release
