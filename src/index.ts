@@ -1,4 +1,4 @@
-import type { InstallTool } from './tools/types'
+import type { McpTool } from './tools/types'
 import { McpServer } from '@modelcontextprotocol/server'
 import { version } from '../package.json'
 
@@ -11,13 +11,13 @@ export async function createArktsMcpServer(): Promise<McpServer> {
   if (import.meta.env.BUILD_TYPE === 'BIN') {
     await Promise.all(
       Object.entries(
-        import.meta.glob<{ install: InstallTool }>('./tools/**/*.tool.ts', { eager: true }),
+        import.meta.glob<{ install: McpTool }>('./tools/**/*.tool.ts', { eager: true }),
       ).map(([_, mod]) => mod.install(server)),
     )
   }
   else {
     await Promise.all(
-      Object.entries(import.meta.glob<{ install: InstallTool }>('./tools/**/*.tool.ts')).map(
+      Object.entries(import.meta.glob<{ install: McpTool }>('./tools/**/*.tool.ts')).map(
         ([_, mod]) => mod().then(tool => tool.install(server)),
       ),
     )

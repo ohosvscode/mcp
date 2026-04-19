@@ -1,11 +1,11 @@
 import type { SearchResult } from 'minisearch'
-import type { InstallTool } from '../types'
+import type { McpTool } from '../types'
 import axios from 'axios'
 import MiniSearch from 'minisearch'
 import nodeJieba from 'nodejieba'
 import z from 'zod'
 
-export const install: InstallTool = (server) => {
+export const install: McpTool = (server) => {
   server.registerTool(
     'searchHarmonyosGuidesCatalogs',
     {
@@ -16,10 +16,10 @@ export const install: InstallTool = (server) => {
     },
     async (ctx) => {
       const response = await requestCatalogTree(ctx.language)
-      const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree)
-      const results = await searchCatalogTree(ctx.text, flattenTree.flat())
-      console.error(results)
-      return { content: [{ type: 'text', text: JSON.stringify(results) }] }
+      const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree).flat()
+      const results = await searchCatalogTree(ctx.text, flattenTree)
+      const contents = results.map(result => flattenTree.find(item => item.nodeId === result.id))
+      return { content: [{ type: 'text', text: JSON.stringify(contents) }] }
     },
   )
 }
