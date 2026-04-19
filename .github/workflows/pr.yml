@@ -106,5 +106,8 @@ jobs:
           version: 10.33.0
           run_install: true
 
+      - name: Build
+        run: pnpm build
+
       - name: Publish packages
         run: pnpm dlx pkg-pr-new publish --compact --pnpm --bin .
