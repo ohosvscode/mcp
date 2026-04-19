@@ -17,7 +17,7 @@ export default defineConfig({
   pack: [
     {
       entry: 'src/bin.ts',
-      format: 'cjs',
+      format: 'esm',
       minify: true,
       dts: false,
       env: { BUILD_TYPE: 'BIN' },
