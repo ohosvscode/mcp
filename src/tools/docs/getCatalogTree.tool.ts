@@ -5,31 +5,26 @@ import MiniSearch from 'minisearch'
 import nodeJieba from 'nodejieba'
 import z from 'zod'
 
-const baseSchema = z.object({
-  language: z.enum(['cn', 'en']),
-})
-
-export const install: McpTool = (server) => {
+export const install: McpTool = async (server) => {
   server.registerTool(
     'getCatalogTree',
     {
       annotations: {
         readOnlyHint: true,
       },
-      inputSchema: z.union([
-        baseSchema.extend({
-          queryType: z.literal('search'),
-          language: z.enum(['cn', 'en']),
-          text: z.string(),
-        }),
-        baseSchema.extend({
-          queryType: z.literal('get'),
-          language: z.enum(['cn', 'en']),
-        }),
-      ]),
-      outputSchema: z.object({
-        catalogs: z.array(z.record(z.string(), z.unknown())),
-      }),
+      description: await import('./getCatalogTree.tool.md').then(mod => mod.default),
+      inputSchema: z
+        .object({
+          queryType: z.union([
+            z.literal('search').describe('Search the catalog tree'),
+            z.literal('get').describe('Get the catalog tree'),
+          ]).describe('The type of query to perform, `search` to search the catalog tree, `get` to get all the catalog tree.'),
+          language: z.enum(['cn', 'en']).describe('The language of the catalog tree, `cn` for Chinese, `en` for English.'),
+          text: z.string().optional().describe('The text to search the catalog tree, if queryType is `search` this field is required, otherwise it will be ignored.'),
+        })
+        .refine(data => data.queryType === 'search' ? data.text !== undefined : true)
+        .transform(data => data as Required<typeof data>),
+      outputSchema: z.object({ catalogs: z.array(z.record(z.string(), z.unknown())) }),
     },
     async (input) => {
       switch (input.queryType) {

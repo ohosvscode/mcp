@@ -2,7 +2,7 @@
   "mcpServers": {
     "arkts": {
       "command": "node",
-      "args": [".cache/bin.cjs"]
+      "args": ["dist/bin.mjs"]
     }
   }
 }
