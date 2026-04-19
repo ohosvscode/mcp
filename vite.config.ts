@@ -8,7 +8,6 @@ import { nodejieba } from './scripts/nodejieba'
 const baseCopyDir = ['.cache', 'target']
 const markdownPlugin = markdown()
 const nodejiebaPlugin = nodejieba()
-const plugins = [markdownPlugin, nodejiebaPlugin]
 
 export default defineConfig({
   staged: {
@@ -22,7 +21,7 @@ export default defineConfig({
       minify: true,
       dts: false,
       env: { BUILD_TYPE: 'BIN' },
-      plugins,
+      plugins: [markdownPlugin],
       deps: {
         alwaysBundle: Object.keys(packageJson.dependencies).map(dep => new RegExp(`^${dep}`)),
         onlyBundle: false,
@@ -33,7 +32,7 @@ export default defineConfig({
       format: ['esm', 'cjs'],
       dts: true,
       env: { BUILD_TYPE: 'LIB' },
-      plugins,
+      plugins: [markdownPlugin],
     } satisfies PackUserConfig,
     process.argv.includes('--build-exe')
       ? ({
@@ -52,7 +51,7 @@ export default defineConfig({
             outDir: 'target',
             fileName: 'arkts-mcp',
           },
-          plugins,
+          plugins: [markdownPlugin, nodejiebaPlugin],
           copy: nodejiebaPlugin.api?.buildCopyConfig(baseCopyDir),
         } satisfies PackUserConfig)
       : undefined,
