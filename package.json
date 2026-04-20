@@ -1,7 +1,7 @@
 {
   "name": "@arkts/mcp",
   "type": "module",
-  "version": "1.1.7",
+  "version": "0.0.1",
   "packageManager": "pnpm@10.33.0",
   "description": "MCP Server for ArkTS.",
   "author": "Naily Zero <zero@naily.cc> (https://naily.cc)",
@@ -28,7 +28,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
-  "bin": "./dist/bin.cjs",
+  "bin": {
+    "arkts-mcp": "./dist/bin.mjs"
+  },
   "files": [
     "dist"
   ],
@@ -38,24 +40,27 @@
   "scripts": {
     "build": "vp pack",
     "test": "vp test watch --globals --coverage --ui",
+    "test:ci": "vp test --globals --coverage",
     "prepublishOnly": "vp pack"
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
-    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
     "@vstils/core": "^0.0.8",
+    "ajv": "^8.18.0",
     "axios": "^1.15.0",
     "minisearch": "^7.2.0",
     "nodejieba": "^3.5.8",
+    "source-map-support": "^0.5.21",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^8.2.0",
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
     "@tsdown/exe": "^0.21.9",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",
     "@vitest/ui": "^4.1.4",
     "eslint": "^10.2.1",
+    "naily-eslint-config": "^0.0.3",
     "pnpm": "^10.33.0",
     "typescript": "^6.0.3",
     "vite-plus": "^0.1.18"

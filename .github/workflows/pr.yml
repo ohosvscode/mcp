@@ -2,12 +2,22 @@ on:
   pull_request:
     branches:
       - main
-    paths:
+    paths-ignore:
       - '!README.md'
       - '!LICENSE'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   build:
+    name: Build
     strategy:
       fail-fast: true
       matrix:
@@ -44,14 +54,39 @@ jobs:
       - name: Build
         run: pnpm build --build-exe
 
+      - name: Show built files
+        run: node scripts/tree.ts
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.settings.artifact }}
           path: target
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 25.9.0
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.33.0
+          run_install: true
+
+      - name: Test
+        run: pnpm test:ci
+
   publish:
-    name: Publish packages to pkg.pr.new
+    name: Continuous release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -71,5 +106,8 @@ jobs:
           version: 10.33.0
           run_install: true
 
+      - name: Build
+        run: pnpm build
+
       - name: Publish packages
-        run: pnpm dlx pkg-pr-new publish --compact --pnpm .
+        run: pnpm dlx pkg-pr-new publish --compact --pnpm --bin .

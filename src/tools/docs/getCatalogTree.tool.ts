@@ -1,28 +1,42 @@
 import type { SearchResult } from 'minisearch'
-import type { InstallTool } from '../types'
 import axios from 'axios'
 import MiniSearch from 'minisearch'
 import nodeJieba from 'nodejieba'
 import z from 'zod'
+import { defineMcpTool } from '../types'
 
-export const install: InstallTool = (server) => {
-  server.registerTool(
-    'searchHarmonyosGuidesCatalogs',
-    {
-      inputSchema: z.object({
-        language: z.enum(['cn', 'en']),
-        text: z.string(),
-      }),
-    },
-    async (ctx) => {
-      const response = await requestCatalogTree(ctx.language)
-      const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree)
-      const results = await searchCatalogTree(ctx.text, flattenTree.flat())
-      console.error(results)
-      return { content: [{ type: 'text', text: JSON.stringify(results) }] }
-    },
-  )
-}
+export default defineMcpTool({
+  name: 'docs_get_catalog_tree',
+  inputSchema: z
+    .object({
+      queryType: z.union([
+        z.literal('search').describe('Search the catalog tree'),
+        z.literal('get').describe('Get the catalog tree'),
+      ]).describe('The type of query to perform, `search` to search the catalog tree, `get` to get all the catalog tree.'),
+      language: z.enum(['cn', 'en']).describe('The language of the catalog tree, `cn` for Chinese, `en` for English.'),
+      text: z.string().optional().describe('The text to search the catalog tree, if queryType is `search` this field is required, otherwise it will be ignored.'),
+    })
+    .refine(data => data.queryType === 'search' ? data.text !== undefined : true)
+    .transform(data => data as Required<typeof data>),
+  outputSchema: z.object({ catalogs: z.array(z.record(z.string(), z.unknown())) }),
+  execute: async (input) => {
+    switch (input.queryType) {
+      case 'search': {
+        const response = await requestCatalogTree(input.language)
+        const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree).flat()
+        const results = await searchCatalogTree(input.text, flattenTree)
+        const contents = results.map(result => flattenTree.find(item => item.nodeId === result.id))
+        return { structuredContent: { catalogs: contents }, content: [] }
+      }
+      case 'get': {
+        const response = await requestCatalogTree(input.language)
+        const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree).flat()
+        return { structuredContent: { catalogs: flattenTree }, content: [] }
+      }
+      default: throw new Error('Invalid query type')
+    }
+  },
+})
 
 export async function requestCatalogTree(language: 'cn' | 'en'): Promise<CatalogTreeResponse> {
   const response = await axios.post<unknown>(
@@ -33,24 +47,18 @@ export async function requestCatalogTree(language: 'cn' | 'en'): Promise<Catalog
       objectId: 'arkts-overview',
     },
   )
-  if (!isValidCatalogTreeResponse(response.data))
-    throw new Error('Invalid catalog tree response')
+  if (!isValidCatalogTreeResponse(response.data)) throw new Error('Invalid catalog tree response')
   return response.data
 }
 
-export async function searchCatalogTree(
-  text: string,
-  flattenTree: FlattenCatalogTreeItem[],
-): Promise<SearchResult[]> {
+export async function searchCatalogTree(text: string, flattenTree: FlattenCatalogTreeItem[]): Promise<SearchResult[]> {
   const miniSearch = new MiniSearch({
     fields: ['nodeName'],
     idField: 'nodeId',
     tokenize: text => nodeJieba.cut(text),
   })
   miniSearch.addAll(flattenTree)
-  return miniSearch.search(text, {
-    tokenize: text => nodeJieba.cut(text),
-  })
+  return miniSearch.search(text)
 }
 
 interface CatalogTreeItem {
@@ -58,6 +66,8 @@ interface CatalogTreeItem {
   nodeId?: string
   labelNameCn?: string
   labelNameEn?: string
+  relateDocument?: string
+  isLeaf?: boolean
   children?: CatalogTreeItem[]
 }
 
@@ -76,7 +86,7 @@ export function toFlattenCatalogTree(tree: CatalogTreeItem): FlattenCatalogTreeI
   return out
 }
 
-interface CatalogTreeResponse {
+export interface CatalogTreeResponse {
   value: {
     catalogTreeList: CatalogTreeItem[]
   }
