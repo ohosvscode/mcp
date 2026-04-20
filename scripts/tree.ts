@@ -3,7 +3,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 const root = 'target'
-const maxDepth = 3
+const maxDepth = Infinity
 
 function printTree(dir: string, prefix: string, depth: number) {
   let entries
