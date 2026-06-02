@@ -46,7 +46,16 @@ function Get-ReleaseJson {
   param([string] $VersionTag)
 
   if ([string]::IsNullOrWhiteSpace($VersionTag)) {
-    return Invoke-RestMethod -Uri "$GithubApi/releases/latest" -Headers $Headers
+    try {
+      return Invoke-RestMethod -Uri "$GithubApi/releases/latest" -Headers $Headers
+    }
+    catch {
+      $releases = @(Invoke-RestMethod -Uri "$GithubApi/releases?per_page=1" -Headers $Headers)
+      if ($releases.Count -eq 0) {
+        throw 'No releases found'
+      }
+      return $releases[0]
+    }
   }
 
   $normalized = $VersionTag.TrimStart('v')

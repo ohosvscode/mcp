@@ -124,7 +124,21 @@ for asset in data.get("assets", []):
 
 resolve_release_json() {
   if [[ -z "$VERSION" ]]; then
-    fetch_release_json "releases/latest"
+    local release_json releases_list
+    release_json="$(fetch_release_json "releases/latest" 2>/dev/null || true)"
+    if [[ -n "$release_json" ]]; then
+      echo "$release_json"
+      return
+    fi
+
+    # GitHub /releases/latest returns 404 when the newest release is a prerelease.
+    releases_list="$(fetch_release_json "releases?per_page=1")"
+    if command -v jq >/dev/null 2>&1; then
+      echo "$releases_list" | jq -c '.[0]'
+      return
+    fi
+    require_cmd python3
+    echo "$releases_list" | python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin)[0]))'
     return
   fi
 
