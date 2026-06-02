@@ -5,6 +5,7 @@
     "@arkts/mcp": "0.0.1"
   },
   "changesets": [
-    "bold-weeks-melt"
+    "bold-weeks-melt",
+    "perky-crabs-mix"
   ]
 }
