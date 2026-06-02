@@ -3,6 +3,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   build:
     strategy:
@@ -47,5 +51,44 @@ jobs:
           name: ${{ matrix.settings.artifact }}
           path: target
 
-      - name: Publish
-        run: pnpm changeset publish
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 25.9.0
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.33.0
+          run_install: true
+
+      - name: Publish packages
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm exec changeset publish
+          createGithubReleases: true
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Download build artifacts
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+
+      - name: Upload executable archives to release
+        if: steps.changesets.outputs.published == 'true'
+        run: node scripts/upload-release-assets.ts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
