@@ -7,3 +7,8 @@ declare module '*.md' {
 declare interface MarkdownModule {
   readonly default?: string
 }
+
+declare interface ImportMetaEnv {
+  /** The type of build, `BIN` for binary, `LIB` for library. */
+  BUILD_TYPE: string
+}

@@ -54,6 +54,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "@modelcontextprotocol/server": "^2.0.0-alpha.2",
     "@tsdown/exe": "^0.21.9",
     "@types/node": "^25.6.0",
@@ -62,6 +63,7 @@
     "eslint": "^10.2.1",
     "naily-eslint-config": "^0.0.3",
     "pnpm": "^10.33.0",
+    "tinyglobby": "^0.2.17",
     "typescript": "^6.0.3",
     "vite-plus": "^0.1.18"
   }

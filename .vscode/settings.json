@@ -46,5 +46,16 @@
     "scss",
     "pcss",
     "postcss"
+  ],
+  "cSpell.words": [
+    "arkts",
+    "cfworker",
+    "cppjieba",
+    "harmonyos",
+    "minisearch",
+    "modelcontextprotocol",
+    "Naily",
+    "nodejieba",
+    "vstils"
   ]
 }

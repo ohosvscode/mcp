@@ -5,7 +5,6 @@ import packageJson from './package.json' with { type: 'json' }
 import { markdown } from './scripts/markdown'
 import { nodejieba } from './scripts/nodejieba'
 
-const baseCopyDir = ['.cache', 'target']
 const markdownPlugin = markdown()
 const nodejiebaPlugin = nodejieba()
 
@@ -68,7 +67,7 @@ export default defineConfig({
           },
           plugins: [markdownPlugin, nodejiebaPlugin],
           copy: [
-            ...nodejiebaPlugin.api?.buildCopyConfig(baseCopyDir) ?? [],
+            ...nodejiebaPlugin.api?.buildCopyConfig(['.cache', 'target']) ?? [],
             { from: 'src/assets', to: 'target' },
           ],
         } satisfies PackUserConfig)
