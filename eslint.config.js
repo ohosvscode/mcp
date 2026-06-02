@@ -1,3 +1,3 @@
-import antfu from '@antfu/eslint-config'
+import naily from 'naily-eslint-config'
 
-export default antfu()
+export default naily()

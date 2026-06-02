@@ -5,6 +5,9 @@ describe('getCatalogTreeTool', () => {
     const response = await requestCatalogTree('cn')
     const flattenTree = response.value.catalogTreeList.map(toFlattenCatalogTree).flat()
     const results = await searchCatalogTree('管理Web组件', flattenTree)
-    console.warn(results.map(res => flattenTree.find(item => item.nodeId === res.id)))
+    for (const result of results) {
+      const item = flattenTree.find(item => item.nodeId === result.id)
+      expect(item).toBeDefined()
+    }
   })
 })

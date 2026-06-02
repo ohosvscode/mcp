@@ -46,3 +46,6 @@ jobs:
         with:
           name: ${{ matrix.settings.artifact }}
           path: target
+
+      - name: Publish
+        run: pnpm changeset publish

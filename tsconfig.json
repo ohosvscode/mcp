@@ -1,13 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
+    "target": "ESNext",
+    "module": "ESNext",
     "moduleResolution": "Bundler",
     "types": ["node", "vite-plus/client", "vite-plus/test/globals"],
     "strict": true,
-    "declaration": true,
-    "isolatedDeclarations": true,
     "skipLibCheck": true
   },
-  "exclude": ["**/*.config.ts"]
+  "exclude": ["**/dist/**/*", "**/.cache/**/*", "**/node_modules/**/*", "**/target/**/*"]
 }
