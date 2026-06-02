@@ -77,8 +77,6 @@ jobs:
         with:
           publish: pnpm exec changeset publish
           createGithubReleases: true
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Download build artifacts
         if: steps.changesets.outputs.published == 'true'
