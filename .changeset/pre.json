@@ -4,5 +4,7 @@
   "initialVersions": {
     "@arkts/mcp": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "bold-weeks-melt"
+  ]
 }
