@@ -1,34 +1,26 @@
-import { spawn } from 'node:child_process'
+import child_process from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
-
-type RunOptions = Parameters<typeof spawn>[2]
 
 interface PublishedPackage {
   name: string
   version: string
 }
 
-function run(command: string, args: string[], options: RunOptions = {}) {
-  return new Promise<void>((resolvePromise, rejectPromise) => {
-    const child = spawn(command, args, { stdio: 'inherit', ...options })
-    child.on('error', rejectPromise)
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolvePromise()
-        return
-      }
-      rejectPromise(new Error(`Command failed: ${command} ${args.join(' ')}`))
-    })
+function run(command: string, args: string[], options: child_process.SpawnOptionsWithoutStdio = {}) {
+  return new Promise<void>((resolve, reject) => {
+    child_process.spawn(command, args, { stdio: 'inherit', ...options })
+      .on('error', reject)
+      .on('close', code => code === 0 ? resolve() : reject(new Error(`Command failed: ${command} ${args.join(' ')}`)))
   })
 }
 
-function runJson<T>(command: string, args: string[], options: RunOptions = {}) {
+function runJson<T>(command: string, args: string[], options: child_process.SpawnOptionsWithoutStdio = {}) {
   return new Promise<T>((resolvePromise, rejectPromise) => {
     let stdout = ''
     let stderr = ''
-    const child = spawn(command, args, { ...options })
+    const child = child_process.spawn(command, args, { ...options })
     child.stdout?.on('data', chunk => (stdout += String(chunk)))
     child.stderr?.on('data', chunk => (stderr += String(chunk)))
     child.on('error', rejectPromise)
