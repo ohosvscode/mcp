@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { readdir } from 'node:fs/promises'
+import { mkdir, readdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import process from 'node:process'
 
@@ -24,6 +24,29 @@ function run(command: string, args: string[], options: RunOptions = {}) {
   })
 }
 
+function runJson<T>(command: string, args: string[], options: RunOptions = {}) {
+  return new Promise<T>((resolvePromise, rejectPromise) => {
+    let stdout = ''
+    let stderr = ''
+    const child = spawn(command, args, { ...options })
+    child.stdout?.on('data', chunk => (stdout += String(chunk)))
+    child.stderr?.on('data', chunk => (stderr += String(chunk)))
+    child.on('error', rejectPromise)
+    child.on('close', (code) => {
+      if (code === 0) {
+        try {
+          resolvePromise(JSON.parse(stdout) as T)
+        }
+        catch (error) {
+          rejectPromise(new Error(`Failed to parse JSON output: ${String(error)}`))
+        }
+        return
+      }
+      rejectPromise(new Error(`Command failed: ${command} ${args.join(' ')}\n${stderr}`))
+    })
+  })
+}
+
 function resolveReleaseMeta() {
   const raw = process.env.PUBLISHED_PACKAGES ?? '[]'
   const publishedPackages = JSON.parse(raw) as PublishedPackage[]
@@ -32,16 +55,25 @@ function resolveReleaseMeta() {
   }
   const pkg = publishedPackages.find(item => item.name === '@arkts/mcp') ?? publishedPackages[0]
   const version = pkg.version
-  const tagName = `${pkg.name}@${pkg.version}`
-  return { version, tagName }
+  const packageTag = `${pkg.name}@${pkg.version}`
+  const versionTag = `v${pkg.version}`
+  return { version, packageTag, versionTag }
+}
+
+async function resolveExistingReleaseTag(packageTag: string, versionTag: string): Promise<string> {
+  const releases = await runJson<Array<{ tagName: string }>>('gh', ['release', 'list', '--limit', '100', '--json', 'tagName'])
+  const tagSet = new Set(releases.map(item => item.tagName))
+  if (tagSet.has(packageTag)) return packageTag
+  if (tagSet.has(versionTag)) return versionTag
+  throw new Error(`Could not find a GitHub release for tags: ${packageTag}, ${versionTag}`)
 }
 
 async function main() {
   const artifactsDir = resolve(process.env.ARTIFACTS_DIR ?? 'artifacts')
   const releaseAssetsDir = resolve(process.env.RELEASE_ASSETS_DIR ?? 'release-assets')
-  const { version, tagName } = resolveReleaseMeta()
+  const { version, packageTag, versionTag } = resolveReleaseMeta()
 
-  await run('mkdir', ['-p', releaseAssetsDir])
+  await mkdir(releaseAssetsDir, { recursive: true })
 
   const entries = await readdir(artifactsDir, { withFileTypes: true })
   const artifactDirs = entries.filter(entry => entry.isDirectory()).map(entry => entry.name)
@@ -55,9 +87,15 @@ async function main() {
     await run('zip', ['-r', zipPath, '.'], { cwd: artifactPath })
   }
 
-  await run('gh', ['release', 'upload', tagName, `${releaseAssetsDir}/*.zip`, '--clobber'], {
-    shell: true,
-  })
+  const releaseTag = await resolveExistingReleaseTag(packageTag, versionTag)
+  const zippedAssets = (await readdir(releaseAssetsDir))
+    .filter(file => file.endsWith('.zip'))
+    .map(file => join(releaseAssetsDir, file))
+  if (zippedAssets.length === 0) {
+    throw new Error(`No zip assets generated in ${releaseAssetsDir}`)
+  }
+
+  await run('gh', ['release', 'upload', releaseTag, ...zippedAssets, '--clobber'])
 }
 
 await main()
