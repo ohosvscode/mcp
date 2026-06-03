@@ -22,6 +22,7 @@ Options:
   -h, --help          Show this help
 
 Examples:
+  curl -fsSL https://cdn.jsdelivr.net/gh/${REPO}/main/install.sh | bash
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
   ./install.sh --version 0.0.1-alpha.2
 EOF

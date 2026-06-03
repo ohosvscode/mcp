@@ -28,6 +28,7 @@ Options:
   -NoGlobal          Do not add the install directory to the user PATH
 
 Examples:
+  irm https://cdn.jsdelivr.net/gh/$Repo/main/install.ps1 | iex
   irm https://raw.githubusercontent.com/$Repo/main/install.ps1 | iex
   .\install.ps1 -Version 0.0.1-alpha.2
 "@
