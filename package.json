@@ -48,6 +48,7 @@
     "@vstils/core": "^0.0.8",
     "ajv": "^8.18.0",
     "axios": "^1.15.0",
+    "cac": "^7.0.0",
     "minisearch": "^7.2.0",
     "nodejieba": "^3.5.8",
     "source-map-support": "^0.5.21",
