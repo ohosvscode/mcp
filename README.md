@@ -13,44 +13,27 @@
 
 ### 独立可执行文件（推荐）
 
-从 [GitHub Releases](https://github.com/ohosvscode/mcp/releases) 下载对应平台压缩包，或使用安装脚本。
+安装脚本与 Release 压缩包均通过 [jsDelivr](https://www.jsdelivr.com/) 从 GitHub 仓库分发，无需 GitHub Token。
 
 **macOS / Linux**
 
-国内网络（jsDelivr 镜像，推荐）：
-
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/ohosvscode/mcp@main/install.sh | bash
-```
-
-官方源：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ohosvscode/mcp/main/install.sh | bash
+curl -fsSL https://fastly.jsdelivr.net/gh/ohosvscode/mcp@main/install.sh | bash
 ```
 
 **Windows (PowerShell)**
 
-国内网络（jsDelivr 镜像，推荐）：
-
 ```powershell
-irm https://cdn.jsdelivr.net/gh/ohosvscode/mcp@main/install.ps1 | iex
+irm https://fastly.jsdelivr.net/gh/ohosvscode/mcp@main/install.ps1 | iex
 ```
-
-官方源：
-
-```powershell
-irm https://raw.githubusercontent.com/ohosvscode/mcp/main/install.ps1 | iex
-```
-
-> 安装脚本本身可通过 jsDelivr 加速获取；Release 中的可执行文件压缩包仍从 GitHub Releases 下载。若下载 Release 较慢，可手动从 [Releases 页面](https://github.com/ohosvscode/mcp/releases) 选择对应平台 zip 后解压，再执行 `arkts-mcp` 或使用 `--no-global` / `-NoGlobal` 仅本地安装。
 
 安装脚本会：
 
 1. 自动检测平台（`darwin-x64`、`darwin-arm64`、`linux-x64`、`linux-arm64`、`win-x64`、`win-arm64`）
-2. 下载最新 Release 压缩包（含 pre-release）
-3. 解压到当前目录
-4. 注册全局命令 `arkts-mcp`
+2. 通过 jsDelivr Data API 解析最新版本
+3. 从 `https://fastly.jsdelivr.net/gh/ohosvscode/mcp@main/release-assets/` 下载对应平台压缩包
+4. 解压到当前目录
+5. 注册全局命令 `arkts-mcp`
 
 可选参数：
 

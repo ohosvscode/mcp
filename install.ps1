@@ -10,11 +10,10 @@ $ErrorActionPreference = 'Stop'
 
 $Repo = 'ohosvscode/mcp'
 $BinaryName = 'arkts-mcp.exe'
-$GithubApi = "https://api.github.com/repos/$Repo"
-$Headers = @{
-  'Accept' = 'application/vnd.github+json'
-  'User-Agent' = 'arkts-mcp-installer'
-}
+$JsdelivrGh = "https://fastly.jsdelivr.net/gh/$Repo"
+$JsdelivrApi = "https://data.jsdelivr.com/v1/package/gh/$Repo"
+$ReleaseAssetsDir = 'release-assets'
+$GitRef = 'main'
 
 function Write-Usage {
   @"
@@ -28,8 +27,7 @@ Options:
   -NoGlobal          Do not add the install directory to the user PATH
 
 Examples:
-  irm https://cdn.jsdelivr.net/gh/$Repo/main/install.ps1 | iex
-  irm https://raw.githubusercontent.com/$Repo/main/install.ps1 | iex
+  irm ${JsdelivrGh}@${GitRef}/install.ps1 | iex
   .\install.ps1 -Version 0.0.1-alpha.2
 "@
 }
@@ -43,53 +41,73 @@ function Get-PlatformArtifact {
   }
 }
 
-function Get-ReleaseJson {
-  param([string] $VersionTag)
-
-  if ([string]::IsNullOrWhiteSpace($VersionTag)) {
-    try {
-      return Invoke-RestMethod -Uri "$GithubApi/releases/latest" -Headers $Headers
-    }
-    catch {
-      $releases = @(Invoke-RestMethod -Uri "$GithubApi/releases?per_page=1" -Headers $Headers)
-      if ($releases.Count -eq 0) {
-        throw 'No releases found'
-      }
-      return $releases[0]
-    }
-  }
-
-  $normalized = $VersionTag.TrimStart('v')
-  $normalized = $normalized -replace '^@arkts/mcp@', ''
-  $candidates = @(
-    $VersionTag,
-    "v$normalized",
-    "@arkts/mcp@$normalized"
-  )
-
-  foreach ($candidate in $candidates) {
-    try {
-      return Invoke-RestMethod -Uri "$GithubApi/releases/tags/$candidate" -Headers $Headers
-    }
-    catch {
-      continue
-    }
-  }
-
-  throw "Release not found for version: $VersionTag"
+function Get-NormalizedVersion {
+  param([string] $Value)
+  $normalized = $Value.TrimStart('v')
+  return ($normalized -replace '^@arkts/mcp@', '')
 }
 
-function Get-ReleaseAsset {
+function Get-LatestVersion {
+  $data = Invoke-RestMethod -Uri $JsdelivrApi
+  if (-not $data.versions -or $data.versions.Count -eq 0) {
+    throw 'Failed to resolve the latest version from jsDelivr.'
+  }
+  return [string]$data.versions[0]
+}
+
+function Get-AssetDownloadUrl {
   param(
-    [object] $Release,
-    [string] $Platform
+    [string] $Version,
+    [string] $AssetName,
+    [string] $Ref = $GitRef
+  )
+  return "$JsdelivrGh@$Ref/$ReleaseAssetsDir/$AssetName"
+}
+
+function Test-ReleaseAsset {
+  param([string] $Url)
+  try {
+    $request = [System.Net.HttpWebRequest]::Create($Url)
+    $request.Method = 'HEAD'
+    $request.UserAgent = 'arkts-mcp-installer'
+    $request.AllowAutoRedirect = $true
+    $response = $request.GetResponse()
+    $response.Close()
+    return $true
+  }
+  catch {
+    return $false
+  }
+}
+
+function Resolve-ReleaseAsset {
+  param(
+    [string] $Platform,
+    [string] $VersionTag
   )
 
-  $asset = $Release.assets | Where-Object { $_.name -match "^$([regex]::Escape($Platform))-.*\.zip$" } | Select-Object -First 1
-  if (-not $asset) {
-    throw "No release asset found for platform: $Platform"
+  $version = if ([string]::IsNullOrWhiteSpace($VersionTag)) {
+    Get-LatestVersion
   }
-  return $asset
+  else {
+    Get-NormalizedVersion $VersionTag
+  }
+
+  $assetName = "$Platform-$version.zip"
+  $refs = @($GitRef, $version, "v$version")
+
+  foreach ($ref in $refs) {
+    $url = Get-AssetDownloadUrl -Version $version -AssetName $assetName -Ref $ref
+    if (Test-ReleaseAsset -Url $url) {
+      return [pscustomobject]@{
+        Version = $version
+        Name = $assetName
+        Url = $url
+      }
+    }
+  }
+
+  throw "No release asset found for platform: $Platform (version: $version)"
 }
 
 function Save-FileWithProgress {
@@ -171,12 +189,12 @@ New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 Write-Host "Platform: $platform"
 Write-Host "Install directory: $installDir"
 
-$release = Get-ReleaseJson -VersionTag $Version
-$asset = Get-ReleaseAsset -Release $release -Platform $platform
-$zipPath = Join-Path $installDir $asset.name
+$asset = Resolve-ReleaseAsset -Platform $platform -VersionTag $Version
+$zipPath = Join-Path $installDir $asset.Name
 
-Write-Host "Asset: $($asset.name)"
-Save-FileWithProgress -Url $asset.browser_download_url -Destination $zipPath
+Write-Host "Version: $($asset.Version)"
+Write-Host "Asset: $($asset.Name)"
+Save-FileWithProgress -Url $asset.Url -Destination $zipPath
 
 Write-Host 'Extracting...'
 Expand-Archive -Path $zipPath -DestinationPath $installDir -Force

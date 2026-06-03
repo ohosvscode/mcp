@@ -8,6 +8,8 @@ interface PublishedPackage {
   version: string
 }
 
+const RELEASE_ASSETS_DIR = 'release-assets'
+
 function run(command: string, args: string[], options: child_process.SpawnOptionsWithoutStdio = {}) {
   return new Promise<void>((resolve, reject) => {
     child_process.spawn(command, args, { stdio: 'inherit', ...options })
@@ -60,9 +62,17 @@ async function resolveExistingReleaseTag(packageTag: string, versionTag: string)
   throw new Error(`Could not find a GitHub release for tags: ${packageTag}, ${versionTag}`)
 }
 
+async function commitReleaseAssets(version: string) {
+  await run('git', ['config', 'user.name', 'github-actions[bot]'])
+  await run('git', ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'])
+  await run('git', ['add', RELEASE_ASSETS_DIR])
+  await run('git', ['commit', '-m', `chore: publish release assets ${version}`])
+  await run('git', ['push', 'origin', 'HEAD:main'])
+}
+
 async function main() {
   const artifactsDir = path.resolve(process.env.ARTIFACTS_DIR ?? 'artifacts')
-  const releaseAssetsDir = path.resolve(process.env.RELEASE_ASSETS_DIR ?? 'release-assets')
+  const releaseAssetsDir = path.resolve(process.env.RELEASE_ASSETS_DIR ?? RELEASE_ASSETS_DIR)
   const { version, packageTag, versionTag } = resolveReleaseMeta()
 
   await fs.mkdir(releaseAssetsDir, { recursive: true })
@@ -88,6 +98,7 @@ async function main() {
   }
 
   await run('gh', ['release', 'upload', releaseTag, ...zippedAssets, '--clobber'])
+  await commitReleaseAssets(version)
 }
 
 await main()

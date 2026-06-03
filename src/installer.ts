@@ -11,20 +11,16 @@ import axios from 'axios'
 import { version as currentVersion } from '../package.json'
 
 const REPO = 'ohosvscode/mcp'
-const GITHUB_API = `https://api.github.com/repos/${REPO}`
-const GITHUB_HEADERS = {
-  'Accept': 'application/vnd.github+json',
+const JSDELIVR_GH = `https://fastly.jsdelivr.net/gh/${REPO}`
+const JSDELIVR_API = `https://data.jsdelivr.com/v1/package/gh/${REPO}`
+const RELEASE_ASSETS_DIR = 'release-assets'
+const GIT_REF = 'main'
+const REQUEST_HEADERS = {
   'User-Agent': 'arkts-mcp-installer',
 }
 
-interface GitHubReleaseAsset {
-  name: string
-  browser_download_url: string
-}
-
-interface GitHubRelease {
-  tag_name: string
-  assets: GitHubReleaseAsset[]
+interface JsdelivrPackageInfo {
+  versions: string[]
 }
 
 export interface UpdateOptions {
@@ -60,52 +56,50 @@ function detectPlatform() {
   throw new Error(`Unsupported platform: ${platform} ${arch}`)
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await axios.get<T>(url, { headers: GITHUB_HEADERS })
-  return response.data
+function normalizeVersion(value: string) {
+  return value.replace(/^v/, '').replace(/^@arkts\/mcp@/, '')
 }
 
-async function fetchRelease(version?: string): Promise<GitHubRelease> {
-  if (!version) {
-    try {
-      return await fetchJson<GitHubRelease>(`${GITHUB_API}/releases/latest`)
-    }
-    catch {
-      const releases = await fetchJson<GitHubRelease[]>(`${GITHUB_API}/releases?per_page=1`)
-      const latest = releases[0]
-      if (!latest) throw new Error('No releases found')
-      return latest
+function assetDownloadUrl(version: string, assetName: string, gitRef = GIT_REF) {
+  return `${JSDELIVR_GH}@${gitRef}/${RELEASE_ASSETS_DIR}/${assetName}`
+}
+
+async function fetchLatestVersion() {
+  const response = await axios.get<JsdelivrPackageInfo>(JSDELIVR_API, { headers: REQUEST_HEADERS })
+  const latest = response.data.versions?.[0]
+  if (!latest) throw new Error('Failed to resolve the latest version from jsDelivr.')
+  return latest
+}
+
+async function releaseAssetExists(url: string) {
+  try {
+    await axios.head(url, { headers: REQUEST_HEADERS })
+    return true
+  }
+  catch {
+    return false
+  }
+}
+
+async function resolveReleaseAsset(platform: string, version?: string) {
+  const resolvedVersion = version ? normalizeVersion(version) : await fetchLatestVersion()
+  const assetName = `${platform}-${resolvedVersion}.zip`
+  const refs = [GIT_REF, resolvedVersion, `v${resolvedVersion}`]
+
+  for (const gitRef of refs) {
+    const url = assetDownloadUrl(resolvedVersion, assetName, gitRef)
+    if (await releaseAssetExists(url)) {
+      return { version: resolvedVersion, assetName, url }
     }
   }
 
-  const normalized = version.replace(/^v/, '').replace(/^@arkts\/mcp@/, '')
-  const candidates = [version, `v${normalized}`, `@arkts/mcp@${normalized}`]
-  for (const candidate of candidates) {
-    try {
-      return await fetchJson<GitHubRelease>(`${GITHUB_API}/releases/tags/${candidate}`)
-    }
-    catch {
-      continue
-    }
-  }
-  throw new Error(`Release not found for version: ${version}`)
-}
-
-function normalizeVersion(tag: string) {
-  return tag.replace(/^v/, '').replace(/^@arkts\/mcp@/, '')
-}
-
-function pickAsset(release: GitHubRelease, platform: string) {
-  const pattern = new RegExp(`^${platform.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-.*\\.zip$`)
-  const asset = release.assets.find(item => pattern.test(item.name))
-  if (!asset) throw new Error(`No release asset found for platform: ${platform}`)
-  return asset
+  throw new Error(`No release asset found for platform: ${platform} (version: ${resolvedVersion})`)
 }
 
 async function downloadWithProgress(url: string, destination: string) {
   const response = await axios.get(url, {
     responseType: 'stream',
-    headers: GITHUB_HEADERS,
+    headers: REQUEST_HEADERS,
   })
   const total = Number(response.headers['content-length'] ?? 0)
   let downloaded = 0
@@ -233,16 +227,16 @@ async function removeInstalledFiles(installDir: string) {
 
 async function installRelease(installDir: string, version?: string) {
   const platform = detectPlatform()
-  const release = await fetchRelease(version)
-  const asset = pickAsset(release, platform)
+  const asset = await resolveReleaseAsset(platform, version)
 
   console.log(`Platform: ${platform}`)
   console.log(`Install directory: ${installDir}`)
-  console.log(`Asset: ${asset.name}`)
+  console.log(`Version: ${asset.version}`)
+  console.log(`Asset: ${asset.assetName}`)
 
   await fsp.mkdir(installDir, { recursive: true })
-  const zipPath = path.join(installDir, asset.name)
-  await downloadWithProgress(asset.browser_download_url, zipPath)
+  const zipPath = path.join(installDir, asset.assetName)
+  await downloadWithProgress(asset.url, zipPath)
 
   console.log('Extracting...')
   await extractArchive(zipPath, installDir)
@@ -255,19 +249,20 @@ async function installRelease(installDir: string, version?: string) {
   if (process.platform !== 'win32') {
     await fsp.chmod(binaryPath, 0o755)
   }
+
+  return asset.version
 }
 
 export async function updateArktsMcp(options: UpdateOptions = {}) {
   const installDir = resolveInstallDirectory()
-  const release = await fetchRelease(options.version)
-  const nextVersion = normalizeVersion(release.tag_name)
+  const latestVersion = options.version ? normalizeVersion(options.version) : await fetchLatestVersion()
 
-  if (!options.version && nextVersion === currentVersion) {
+  if (!options.version && latestVersion === currentVersion) {
     console.log(`Already up to date (${currentVersion}).`)
     return
   }
 
-  await installRelease(installDir, options.version)
+  const nextVersion = await installRelease(installDir, options.version)
   await refreshGlobalCommand(installDir)
 
   console.log('')

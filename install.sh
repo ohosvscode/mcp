@@ -3,7 +3,10 @@ set -euo pipefail
 
 REPO="ohosvscode/mcp"
 BINARY_NAME="arkts-mcp"
-GITHUB_API="https://api.github.com/repos/${REPO}"
+JSDELIVR_GH="https://fastly.jsdelivr.net/gh/${REPO}"
+JSDELIVR_API="https://data.jsdelivr.com/v1/package/gh/${REPO}"
+RELEASE_ASSETS_DIR="release-assets"
+GIT_REF="main"
 
 INSTALL_DIR="$(pwd)"
 VERSION=""
@@ -22,8 +25,7 @@ Options:
   -h, --help          Show this help
 
 Examples:
-  curl -fsSL https://cdn.jsdelivr.net/gh/${REPO}/main/install.sh | bash
-  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
+  curl -fsSL ${JSDELIVR_GH}@${GIT_REF}/install.sh | bash
   ./install.sh --version 0.0.1-alpha.2
 EOF
 }
@@ -88,76 +90,59 @@ detect_platform() {
   esac
 }
 
-fetch_release_json() {
-  local endpoint="$1"
-  curl -fsSL \
-    -H "Accept: application/vnd.github+json" \
-    -H "User-Agent: arkts-mcp-installer" \
-    "${GITHUB_API}/${endpoint}"
+normalize_version() {
+  local version="$1"
+  version="${version#v}"
+  version="${version#@arkts/mcp@}"
+  printf '%s' "$version"
 }
 
-pick_asset_field() {
+resolve_latest_version() {
+  local json version
+  json="$(curl -fsSL "$JSDELIVR_API")"
+  version="$(printf '%s' "$json" | sed -n 's/.*"versions"[[:space:]]*:[[:space:]]*\[[[:space:]]*"\([^"]*\)".*/\1/p')"
+  if [[ -z "$version" ]]; then
+    echo "Failed to resolve the latest version from jsDelivr." >&2
+    exit 1
+  fi
+  printf '%s\n' "$version"
+}
+
+asset_download_url() {
+  local version="$1"
+  local asset_name="$2"
+  local git_ref="${3:-$GIT_REF}"
+  printf '%s@%s/%s/%s' "$JSDELIVR_GH" "$git_ref" "$RELEASE_ASSETS_DIR" "$asset_name"
+}
+
+release_asset_exists() {
+  local url="$1"
+  curl -fsSI "$url" >/dev/null 2>&1
+}
+
+resolve_release_version() {
   local platform="$1"
-  local field="$2"
-  local release_json="$3"
+  local version normalized asset_url git_ref
 
-  if command -v jq >/dev/null 2>&1; then
-    echo "$release_json" | jq -r --arg platform "$platform" --arg field "$field" '
-      .assets[]
-      | select(.name | test("^" + $platform + "-.*\\.zip$"))
-      | .[$field]
-      ' | head -n 1
-    return
-  fi
-
-  require_cmd python3
-  echo "$release_json" | python3 -c '
-import json, re, sys
-platform, field = sys.argv[1], sys.argv[2]
-data = json.load(sys.stdin)
-pattern = re.compile(rf"^{re.escape(platform)}-.*\.zip$")
-for asset in data.get("assets", []):
-    if pattern.match(asset.get("name", "")):
-        print(asset[field])
-        break
-' "$platform" "$field"
-}
-
-resolve_release_json() {
   if [[ -z "$VERSION" ]]; then
-    local release_json releases_list
-    release_json="$(fetch_release_json "releases/latest" 2>/dev/null || true)"
-    if [[ -n "$release_json" ]]; then
-      echo "$release_json"
-      return
-    fi
-
-    # GitHub /releases/latest returns 404 when the newest release is a prerelease.
-    releases_list="$(fetch_release_json "releases?per_page=1")"
-    if command -v jq >/dev/null 2>&1; then
-      echo "$releases_list" | jq -c '.[0]'
-      return
-    fi
-    require_cmd python3
-    echo "$releases_list" | python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin)[0]))'
-    return
+    version="$(resolve_latest_version)"
+  else
+    version="$(normalize_version "$VERSION")"
   fi
 
-  local tag normalized candidate release_json
-  tag="$VERSION"
-  normalized="${tag#v}"
-  normalized="${normalized#@arkts/mcp@}"
-
-  for candidate in "$tag" "v${normalized}" "@arkts/mcp@${normalized}"; do
-    if release_json="$(fetch_release_json "releases/tags/${candidate}" 2>/dev/null || true)"; then
-      if [[ -n "$release_json" && "$release_json" != *"Not Found"* ]]; then
-        echo "$release_json"
-        return
-      fi
+  asset_name="${platform}-${version}.zip"
+  for git_ref in "$GIT_REF" "$version" "v${version}"; do
+    asset_url="$(asset_download_url "$version" "$asset_name" "$git_ref")"
+    if release_asset_exists "$asset_url"; then
+      printf '%s\n' "$version"
+      printf '%s\n' "$asset_url"
+      printf '%s\n' "$asset_name"
+      return 0
     fi
   done
 
-  echo "Release not found for version: $VERSION" >&2
+  echo "No release asset found for platform: ${platform}" >&2
+  echo "Version: ${version}" >&2
   exit 1
 }
 
@@ -198,7 +183,7 @@ install_global() {
 
 main() {
   require_cmd unzip
-  local platform release_json asset_url asset_name zip_path install_dir_abs binary_path
+  local platform version asset_url asset_name zip_path install_dir_abs binary_path
   platform="$(detect_platform)"
   install_dir_abs="$(cd "$INSTALL_DIR" && pwd)"
   mkdir -p "$install_dir_abs"
@@ -206,16 +191,14 @@ main() {
   echo "Platform: ${platform}"
   echo "Install directory: ${install_dir_abs}"
 
-  release_json="$(resolve_release_json)"
-  asset_url="$(pick_asset_field "$platform" "browser_download_url" "$release_json")"
-  asset_name="$(pick_asset_field "$platform" "name" "$release_json")"
-
-  if [[ -z "$asset_url" || "$asset_url" == "null" || -z "$asset_name" || "$asset_name" == "null" ]]; then
-    echo "No release asset found for platform: ${platform}" >&2
-    exit 1
-  fi
+  {
+    read -r version
+    read -r asset_url
+    read -r asset_name
+  } < <(resolve_release_version "$platform")
 
   zip_path="${install_dir_abs}/${asset_name}"
+  echo "Version: ${version}"
   echo "Asset: ${asset_name}"
   download_with_progress "$asset_url" "$zip_path"
 
