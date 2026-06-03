@@ -1,5 +1,11 @@
 # @arkts/mcp
 
+## 0.0.1-alpha.3
+
+### Patch Changes
+
+- ae5a609: feat: update README
+
 ## 0.0.1-alpha.2
 
 ### Patch Changes
