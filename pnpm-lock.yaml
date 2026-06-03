@@ -20,6 +20,9 @@ importers:
       axios:
         specifier: ^1.15.0
         version: 1.15.0
+      cac:
+        specifier: ^7.0.0
+        version: 7.0.0
       minisearch:
         specifier: ^7.2.0
         version: 7.2.0
